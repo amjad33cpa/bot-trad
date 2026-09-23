@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 import re
 import math
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -70,3 +71,7 @@ class Config:
             raise ValueError("WATCHLIST needs 1-50 valid symbols without spaces")
         if self.mode == "live" and (self.day_feed != "sip" or not self.ai_required):
             raise ValueError("Live alerts require SIP and AI_REQUIRED=true")
+        if os.getenv("RAILWAY_ENVIRONMENT_ID"):
+            mount = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
+            if not mount or not Path(self.db).resolve().is_relative_to(Path(mount).resolve()):
+                raise ValueError("Railway paper/live requires DATABASE_PATH inside a mounted persistent volume")

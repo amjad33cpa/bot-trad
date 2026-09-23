@@ -1,0 +1,20 @@
+# النشر الحالي
+
+- المستودع: https://github.com/amjad33cpa/bot-trad
+- الفرع: `main`
+- مشروع Railway: https://railway.com/project/b1a11198-c8d0-4646-b7ee-cadba90dbfaa
+- الخدمة: `bot-trad`
+- رابط الخدمة: https://bot-trad-production.up.railway.app
+- الوضع الأولي: `MODE=setup`؛ لا تنبيهات ولا طلبات بيانات سوق.
+
+## المتبقي لتشغيل التجربة
+
+1. داخل المشروع، أضف Volume للخدمة `bot-trad` بمسار `/data`.
+2. في Variables أضف القيم السرية لـ`ALPACA_KEY` و`ALPACA_SECRET` و`TELEGRAM_BOT_TOKEN` و`TELEGRAM_CHAT_ID`.
+3. افتح محادثة البوت في تلقرام واضغط Start، أو أعطه صلاحية الإرسال إلى القناة المختارة.
+4. بعد تجهيز التخزين والمفاتيح، غيّر `MODE` من `setup` إلى `paper` وانشر التغيير.
+5. تحقق أن `/ready` يعيد 200 وأن السجلات تعرض `running`. وضع setup يُعيد 503 على `/ready` عمدًا، بينما `/health` يعيد 200.
+
+القيم الأخرى مضبوطة: `DAY_FEED=iex`، و`ENABLE_OVERNIGHT=false`، و`AI_REQUIRED=false`، وقاعدة البيانات `/data/sentinel.sqlite3`، ودورة الفحص 30 ثانية. الذكاء الاصطناعي لا يتفعّل قبل وجود نموذج بحثي مدرّب ومقبول.
+
+36 اختبارًا محليًا ناجحًا، ونجح GitHub Actions للإصدار الأول. لم يتم اختبار أسعار حية أو إرسال حقيقي لتلقرام قبل توفير المفاتيح. لا توجد نتائج ربحية حقيقية أو backtest سوقي مرفق. يرفض البرنامج بدء paper/live على Railway إذا لم تكن قاعدة البيانات داخل Volume دائم.

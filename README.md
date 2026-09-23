@@ -14,7 +14,7 @@
 - فلترة الجلسات وفق تقويم Alpaca، بما يشمل العطلات والتوقيت الصيفي والإغلاقات المبكرة. تبدأ الإشارات بعد اكتمال 55 دقيقة بيانات داخل كل جلسة؛ لا توجد استراتيجية افتتاح السوق في هذه النسخة.
 - حفظ التنبيهات والنتائج في SQLite، وصندوق إرسال مستمر، ومنع التكرار والتزاحم بين عمليتين تستخدمان الملف نفسه.
 - ذكاء اصطناعي محلي: تدريب مصنف Logistic Regression بأوزان JSON على نتائج التجربة، وفصل زمني للاختبار مع استبعاد النتائج المتداخلة عند الحد الزمني. لا اشتراك AI خارجي مطلوب.
-- Docker، إعداد Railway، وGitHub Actions للاختبارات.
+- Docker، إعدادات خدمة Railway، وGitHub Actions للاختبارات.
 
 ## حدود يجب فهمها
 
@@ -72,9 +72,11 @@ AI_REQUIRED=false
 ```
 
 4. اترك نسخة تشغيل واحدة ومنطقة واحدة، وعطّل Serverless/App Sleeping إن كان مفعّلًا. لا تضبط Cron؛ الخدمة حلقة مستمرة.
-5. انشر Dockerfile. يقرأ السيرفر `PORT` تلقائيًا، وملف Railway يضبط `/health` لفحص الإقلاع وسياسة إعادة التشغيل.
+5. انشر Dockerfile. يقرأ السيرفر `PORT` تلقائيًا. اضبط Healthcheck Path إلى `/health` وHealthcheck Timeout إلى 120 ثانية وRestart Policy إلى On Failure بحد 10 محاولات. أمر البدء `python -m sentinel`.
 6. أنشئ Domain للخدمة عند الحاجة لمراقبة `/health` و`/ready`. الأول يختبر حياة العامل، والثاني نجاح آخر دورة. لا تحتوي الاستجابات مفاتيح أو أوامر تحكم.
 7. راقب السجلات أثناء جلسة السوق. ظهور `running` لا يعني أن فرصة مؤهلة موجودة؛ الفلاتر قد تمنع جميع الإشارات. راجع وصول أول تنبيه تجريبي بالفعل قبل الاعتماد على الخدمة.
+
+تم ضبط هذه الإعدادات مباشرةً للخدمة الحالية. لا يوجد `railway.json`: أفادت واجهة Railway الحالية بأن Config as Code قد أُهمل للخدمات الجديدة، وبديله Infrastructure as Code. لتوثيق البنية محليًا لاحقًا، استورد إعدادات المشروع باستخدام `railway config pull` بعد تسجيل الدخول، ثم راجع أي خطة قبل تطبيقها. [المرجع الحالي](https://docs.railway.com/infrastructure-as-code).
 
 Railway ليس ضمانًا لاستضافة مجانية مستمرة: بحسب وثائقه التي روجعت في 2026-09-23، التجربة حتى 30 يومًا أو استنفاد الرصيد، ثم خطة Free برصيد شهري محدود. لا توجد عملية شراء أو ترقية تلقائية في هذا المشروع. [الخطط](https://docs.railway.com/pricing/plans) و[التجربة](https://docs.railway.com/pricing/free-trial).
 
@@ -146,6 +148,6 @@ python -m sentinel train --input /data/observations.json --output /data/model.js
 - [Alpaca: الشموع التاريخية وترقيم الصفحات](https://docs.alpaca.markets/us/v1.4.2/reference/stockbars)
 - [Alpaca: التقويم والإغلاق المبكر](https://docs.alpaca.markets/us/v1.1/reference/getcalendar-1)
 - [Telegram Bot API](https://core.telegram.org/bots/api#sendmessage)
-- [Railway Config as Code](https://docs.railway.com/config-as-code/reference)
+- [Railway Infrastructure as Code](https://docs.railway.com/infrastructure-as-code)
 - [Railway Volumes](https://docs.railway.com/volumes/reference)
 - [Railway Healthchecks](https://docs.railway.com/deployments/healthchecks)

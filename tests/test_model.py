@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from datetime import datetime, timedelta
 from dataclasses import replace
+from unittest.mock import patch
 from sentinel.config import Config
 from sentinel.market import UTC
 from sentinel.model import train, fit, predict, ModelGate
@@ -71,3 +72,8 @@ class ModelTests(unittest.TestCase):
     def test_nonfinite_config_rejected(self):
         with self.assertRaises(ValueError):
             Config(key="x", secret="x", token="x", chat="1", risk=float('nan')).validate()
+
+    def test_railway_requires_persistent_storage(self):
+        with patch.dict('os.environ', {"RAILWAY_ENVIRONMENT_ID":"test", "RAILWAY_VOLUME_MOUNT_PATH":""}):
+            with self.assertRaises(ValueError):
+                Config(key="x", secret="x", token="x", chat="1").validate()
