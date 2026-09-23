@@ -1,6 +1,7 @@
 """Read-only market API calls and Telegram delivery; no broker order endpoints."""
 import json
 import time
+import re
 from datetime import timedelta
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
@@ -9,7 +10,9 @@ from .market import Bar, Quote
 
 
 class ProviderError(RuntimeError):
-    pass
+    def __init__(self, code):
+        self.safe_code = code if re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", str(code)) else "PROVIDER_ERROR"
+        super().__init__(self.safe_code)
 
 
 def request_json(url, headers=None, payload=None, retries=2):

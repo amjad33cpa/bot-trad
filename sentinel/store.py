@@ -13,6 +13,8 @@ class Store:
         self.db.row_factory = sqlite3.Row
         self.db.executescript("""
             PRAGMA journal_mode=WAL;
+            CREATE TABLE IF NOT EXISTS connection_checks (
+                id TEXT PRIMARY KEY, checked TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS ideas (
                 id TEXT PRIMARY KEY, symbol TEXT NOT NULL, trade_date TEXT NOT NULL,
                 created TEXT NOT NULL, expires TEXT NOT NULL, state TEXT NOT NULL,
@@ -26,6 +28,13 @@ class Store:
 
     def active(self):
         return list(self.db.execute("SELECT * FROM ideas WHERE state='active' ORDER BY created"))
+
+    def connection_confirmed(self, key):
+        return self.db.execute("SELECT 1 FROM connection_checks WHERE id=?", (key,)).fetchone() is not None
+
+    def confirm_connection(self, key, now):
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO connection_checks VALUES (?,?)", (key, now.isoformat()))
 
     def can_add(self, c, config):
         if len(self.active()) >= config.max_active:

@@ -9,6 +9,7 @@ import threading
 import time
 from .market import UTC, stamp
 from .engine import Engine, check_live_model
+from .providers import ProviderError
 
 log = logging.getLogger("sentinel")
 
@@ -106,17 +107,23 @@ def run(config):
         signal.signal(signal.SIGTERM, shutdown)
         signal.signal(signal.SIGINT, shutdown)
         failures = 0
+        connections_verified = False
         log.info("started mode=%s feed=%s watchlist_size=%d", config.mode, config.day_feed, len(config.symbols))
         try:
             while not stop.is_set():
                 try:
+                    if not connections_verified:
+                        engine.verify_connections()
+                        connections_verified = True
+                        log.info("connections_verified market_calendar_and_quotes=ok telegram_confirmation=recorded")
                     engine.cycle()
                     failures = 0
                 except Exception as exc:
                     failures += 1
                     # Only class name is safe: exceptions may contain credential URLs.
-                    engine.status.update(service="degraded", error=type(exc).__name__)
-                    log.error("cycle_failed class=%s count=%d", type(exc).__name__, failures)
+                    reason = exc.safe_code if isinstance(exc, ProviderError) else type(exc).__name__
+                    engine.status.update(service="degraded", error=reason)
+                    log.error("cycle_failed reason=%s count=%d", reason, failures)
                 heartbeat["at"] = time.monotonic()
                 log.info("cycle session=%s active=%s status=%s", engine.status["session"], len(engine.store.active()), engine.status["service"])
                 if failures >= 10 and time.monotonic() - started > 300:

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 import json
+import hashlib
 from .market import UTC, session_at, stamp
 from .strategy import evaluate, market_trend_ok
 from .model import ModelGate
@@ -22,6 +23,29 @@ class Engine:
         self.assets = set()
         self.status = {"service": "starting", "mode": config.mode, "session": "closed", "last_cycle": None,
                        "last_success": None, "error": None, "active": 0}
+
+    def verify_connections(self):
+        now = datetime.now(UTC)
+        self.calendar = self.market.calendar(now)
+        if not self.calendar:
+            raise ProviderError("CALENDAR_EMPTY")
+        self.calendar_loaded = now
+        quotes = self.market.quotes(["SPY"], self.config.day_feed)
+        if "SPY" not in quotes:
+            raise ProviderError("MARKET_DATA_EMPTY")
+        # Never persist credentials: use only a digest to distinguish configurations.
+        key = hashlib.sha256(json.dumps([self.config.key, self.config.token, self.config.chat,
+                                       self.config.day_feed, self.config.mode]).encode()).hexdigest()
+        if not self.store.connection_confirmed(key):
+            self.telegram.send(
+                "🧪 اختبار تشغيل بوت الأسهم الأمريكية\n"
+                f"الوضع: {self.config.mode} • مصدر البيانات: {self.config.day_feed.upper()}\n"
+                "نجح اتصال التقويم وواجهة الأسعار، وهذه رسالة اختبار للإرسال.\n"
+                "سيفحص البوت حداثة الأسعار وشروط الفرصة أثناء الجلسة المدعومة.\n"
+                "لا تتضمن هذه الرسالة توصية شراء أو نتيجة تداول."
+            )
+            self.store.confirm_connection(key, now)
+        self.status["connections_verified"] = True
 
     def blacked_out(self, symbol, now):
         # Missing/malformed configured file is an error, not permission to proceed.

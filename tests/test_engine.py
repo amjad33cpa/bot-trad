@@ -30,6 +30,33 @@ class EngineTests(unittest.TestCase):
         self.engine.store.db.close()
         self.tmp.cleanup()
 
+    def test_connection_confirmation_persists(self):
+        self.engine.market.calendar.return_value = {"2026-09-23": {"open":"09:30", "close":"16:00"}}
+        self.engine.market.quotes.return_value = {"SPY": self.q}
+        self.engine.verify_connections()
+        self.engine.verify_connections()
+        self.assertEqual(self.engine.telegram.send.call_count, 1)
+        other = Store(self.cfg.db)
+        self.assertEqual(other.db.execute("SELECT count(*) FROM connection_checks").fetchone()[0], 1)
+        other.db.close()
+
+    def test_failed_telegram_check_can_retry(self):
+        self.engine.market.calendar.return_value = {"2026-09-23": {"open":"09:30", "close":"16:00"}}
+        self.engine.market.quotes.return_value = {"SPY": self.q}
+        self.engine.telegram.send.side_effect = [ProviderError("HTTP_403"), 123]
+        with self.assertRaises(ProviderError):
+            self.engine.verify_connections()
+        self.assertEqual(self.engine.store.db.execute("SELECT count(*) FROM connection_checks").fetchone()[0], 0)
+        self.engine.verify_connections()
+        self.assertTrue(self.engine.status["connections_verified"])
+
+    def test_missing_market_data_does_not_confirm(self):
+        self.engine.market.calendar.return_value = {"2026-09-23": {"open":"09:30", "close":"16:00"}}
+        self.engine.market.quotes.return_value = {}
+        with self.assertRaises(ProviderError):
+            self.engine.verify_connections()
+        self.engine.telegram.send.assert_not_called()
+
     def test_duplicate_and_cooldown_persist(self):
         self.assertFalse(self.engine.store.add(self.c, "duplicate"))
         self.assertFalse(self.engine.store.can_add(self.c, self.cfg))
@@ -115,6 +142,9 @@ class EngineTests(unittest.TestCase):
 
 
 class ProviderTests(unittest.TestCase):
+    def test_arbitrary_provider_errors_redacted(self):
+        self.assertEqual(str(ProviderError("https://api.telegram.org/botSECRET")), "PROVIDER_ERROR")
+
     def test_overnight_eligibility_and_halts(self):
         p = Alpaca(Config())
         p.get = Mock(return_value=[

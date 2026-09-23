@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from .config import Config
 from .demo import demo
@@ -18,7 +19,7 @@ def main():
     parser.add_argument("--output")
     parser.add_argument("--threshold", type=float, default=.6)
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(asctime)s %(levelname)s %(message)s")
     if args.command == "demo":
         demo()
     elif args.command == "run":
